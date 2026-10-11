@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { ServiceWorker } from "@/components/service-worker";
+import { TapFeedback } from "@/components/tap-feedback";
 import "./globals.css";
 
 const geist = Geist({
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <body className="min-h-dvh">
         <ServiceWorker />
+        <TapFeedback />
         {children}
       </body>
     </html>

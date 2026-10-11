@@ -22,6 +22,33 @@ input {
   font: inherit;
 }
 
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tap-pop {
+  animation: tap-pop 180ms ease;
+}
+
+@keyframes tap-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tap-pop {
+    animation: none;
+  }
+}
+
 .glass {
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid rgba(255, 255, 255, 0.08);
