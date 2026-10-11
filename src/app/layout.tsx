@@ -10,13 +10,17 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Dou's",
+  title: "Dou's Family Checklist",
   description: "Dou's Family Checklist, a shared Singapore grocery list.",
   applicationName: "Dou's Family Checklist",
+  openGraph: {
+    title: "Dou's Family Checklist",
+    description: "Dou's Family Checklist, a shared Singapore grocery list.",
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Dou's",
+    title: "Dou's Family Checklist",
     statusBarStyle: "black-translucent",
   },
   icons: {
