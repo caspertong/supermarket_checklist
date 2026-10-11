@@ -22,6 +22,28 @@ export type ListDTO = {
   items: ItemDTO[];
 };
 
+export type PromoItem = {
+  name: string;
+  size: string | null;
+  price: number | null;
+  promoPrice: number | null;
+  previousPrice: number | null;
+  detail: string | null;
+  until: string | null;
+  url: string;
+};
+
+export type StorePromos = {
+  fetchedAt: string | null;
+  validFrom: string | null;
+  validTill: string | null;
+  note: string | null;
+  leafletUrl: string | null;
+  items: PromoItem[];
+};
+
+export type PromotionsDTO = Record<StoreName, StorePromos>;
+
 export type ArchiveEntry = {
   date: string;
   dateLabel: string;

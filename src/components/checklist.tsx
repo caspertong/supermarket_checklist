@@ -252,6 +252,9 @@ export function Checklist({
             <p className="mt-1 text-sm text-mist">Family Checklist</p>
           </div>
           <div className="flex items-center gap-3 text-sm">
+            <Link href="/promotions" className="text-mist">
+              Promotion
+            </Link>
             <Link href="/archive" className="text-mist">
               Archive
             </Link>
