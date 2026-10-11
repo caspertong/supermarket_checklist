@@ -1,7 +1,8 @@
-"""Pull FairPrice Weekly Promotions once.
+"""Pull FairPrice weekly price cuts of 30% or more.
 
-The public tag promotions-boost flips Thursday 04:01 Singapore time and
-runs until the next Thursday 04:00. Run this on Thursday morning.
+The public tag promotions-boost flips Thursday 04:01 Singapore time.
+Run this Thursday at 10:00 Singapore time. Bundle deals with no straight
+markdown, and longer monthly offers under 30% off, are left out.
 """
 import sys
 import time
@@ -12,7 +13,7 @@ from zoneinfo import ZoneInfo
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fairprice import fetch, rows
-from promo_store import save_store
+from promo_store import keep_major, save_store
 
 SGT = ZoneInfo("Asia/Singapore")
 TAG = "promotions-boost"
@@ -68,9 +69,9 @@ def pull():
             "fetchedAt": datetime.now(SGT).isoformat(timespec="seconds"),
             "validFrom": common(starts),
             "validTill": common(ends),
-            "note": "Weekly Promotions, Thursday to Thursday.",
-            "leafletUrl": "https://www.fairprice.com.sg/promotions",
-            "items": collected,
+            "note": "At least 30% off. Bundle deals and the monthly list are left out.",
+            "leafletUrl": None,
+            "items": keep_major(collected),
         },
     )
 

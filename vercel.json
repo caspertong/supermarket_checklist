@@ -1,6 +1,6 @@
 {
     "crons": [
-      { "path": "/api/promotions/refresh?store=fairprice", "schedule": "0 22 * * 3" },
-      { "path": "/api/promotions/refresh?store=shengsiong", "schedule": "0 22 * * 4" }
+      { "path": "/api/promotions/refresh?store=fairprice", "schedule": "0 2 * * 4" },
+      { "path": "/api/promotions/refresh?store=shengsiong", "schedule": "0 2 * * 5" }
     ]
   }

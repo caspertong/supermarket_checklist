@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { BackToChecklist } from "@/components/back-to-checklist";
 import { Gate } from "@/components/gate";
 import { api, formatQuantity } from "@/lib/client";
 import type { ArchiveEntry, ListDTO, StoreName } from "@/lib/types";
@@ -36,9 +37,7 @@ function ArchiveList() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
-      <Link href="/" className="text-sm text-aqua">
-        Today
-      </Link>
+      <BackToChecklist />
       <h1 className="mt-4 text-3xl font-semibold tracking-tight">Archive</h1>
       <p className="mt-2 text-sm text-mist">Older trips, kept by the Singapore date.</p>
       {error ? <p className="mt-6 text-sm text-amber">{error}</p> : null}

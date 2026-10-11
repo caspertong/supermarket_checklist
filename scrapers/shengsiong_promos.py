@@ -1,25 +1,21 @@
-"""Pull Sheng Siong online promotions, plus the current in-store leaflet.
+"""Pull Sheng Siong online price cuts of 30% or more.
 
-The newspaper leaflet is a two-week special. The one posted 2 Oct 2026
-covers Friday 2 Oct through Thursday 15 Oct. The online Promotions page
-is a separate list and is refreshed on the same Friday run.
+The monthly newspaper leaflet is ignored. Run this Friday at 10:00 Singapore time,
+after the Friday 6:00am publish.
 """
 import json
-import re
 import sys
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-import requests
 import websocket
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from promo_store import save_store
+from promo_store import keep_major, save_store
 
 SGT = ZoneInfo("Asia/Singapore")
-UA = {"User-Agent": "Mozilla/5.0"}
 SOCKET = "wss://shengsiong.com.sg/websocket"
 PAGE_SIZE = 5000
 FILTERS = {
@@ -71,35 +67,6 @@ class Socket:
         raise TimeoutError("Sheng Siong socket did not answer.")
 
 
-def leaflet():
-    response = requests.get(
-        "https://corporate.shengsiong.com.sg/wp-json/wp/v2/posts",
-        params={"categories": 58, "per_page": 1, "_fields": "date,link,title,content"},
-        headers=UA,
-        timeout=20,
-    )
-    response.raise_for_status()
-    posts = response.json()
-    if not posts:
-        return None
-    post = posts[0]
-    html = post["content"]["rendered"]
-    title = re.sub(r"<[^>]+>", "", post["title"]["rendered"])
-    title = title.replace("&#8211;", "–").replace("&amp;", "&")
-    dates = re.findall(r"(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})", title)
-    parsed = []
-    for day, month, year in dates:
-        parsed.append(datetime.strptime(f"{day} {month} {year}", "%d %b %Y").date().isoformat())
-    pdfs = re.findall(r'href="([^"]+\.pdf)"', html)
-    return {
-        "title": title,
-        "url": post["link"],
-        "pdf": pdfs[0] if pdfs else None,
-        "validFrom": parsed[0] if parsed else None,
-        "validTill": parsed[1] if len(parsed) > 1 else None,
-    }
-
-
 def item_row(product):
     brand = (product.get("brand") or "").strip()
     name = (product.get("name") or "").strip()
@@ -126,7 +93,6 @@ def item_row(product):
 
 
 def pull():
-    flyer = leaflet()
     socket = Socket()
     try:
         count = socket.call("Products.getCountByAllSlugs", [FILTERS, MISC]) or {}
@@ -140,7 +106,8 @@ def pull():
                 continue
             seen.add(row["url"])
             items.append(row)
-        print(f"shengsiong {len(items)}/{total}", flush=True)
+        items = keep_major(items)
+        print(f"shengsiong {len(items)} major cuts from {total}", flush=True)
     finally:
         socket.close()
 
@@ -148,10 +115,10 @@ def pull():
         "shengsiong",
         {
             "fetchedAt": datetime.now(SGT).isoformat(timespec="seconds"),
-            "validFrom": flyer.get("validFrom") if flyer else None,
-            "validTill": flyer.get("validTill") if flyer else None,
-            "note": flyer.get("title") if flyer else "Online promotions.",
-            "leafletUrl": (flyer or {}).get("pdf") or (flyer or {}).get("url"),
+            "validFrom": None,
+            "validTill": None,
+            "note": "At least 30% off. The monthly leaflet is left out.",
+            "leafletUrl": None,
             "items": items,
         },
     )

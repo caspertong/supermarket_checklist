@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { BackToChecklist } from "@/components/back-to-checklist";
 import { Gate } from "@/components/gate";
 import { api } from "@/lib/client";
 import { formatDateLabel } from "@/lib/sgt";
@@ -42,12 +42,10 @@ function PromotionList() {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
-      <Link href="/" className="text-sm text-aqua">
-        Today
-      </Link>
+      <BackToChecklist />
       <h1 className="mt-4 text-3xl font-semibold tracking-tight">Promotion</h1>
       <p className="mt-2 text-sm leading-6 text-mist">
-        FairPrice refreshes Thursday. Sheng Siong&apos;s leaflet is a two-week special posted on a Friday, and the online list refreshes the same day.
+        Price cuts of 30% or more. FairPrice refreshes Thursday at 10am, Sheng Siong on Friday at 10am.
       </p>
       <div className="mt-4 flex gap-2">
         {(Object.keys(STORE_LABEL) as StoreName[]).map((name) => (
@@ -102,15 +100,10 @@ function Summary({ store }: { store: StorePromos }) {
   return (
     <div className="mt-4 text-sm text-mist">
       <p>
-        {store.items.length} promotions
+        {store.items.length} major cuts
         {from && till ? ` · ${from} – ${till}` : ""}
       </p>
       {store.note ? <p className="mt-1">{store.note}</p> : null}
-      {store.leafletUrl ? (
-        <a href={store.leafletUrl} className="mt-1 inline-block text-aqua" target="_blank" rel="noreferrer">
-          Open the leaflet
-        </a>
-      ) : null}
     </div>
   );
 }
@@ -118,11 +111,12 @@ function Summary({ store }: { store: StorePromos }) {
 function PromoRow({ item }: { item: PromoItem }) {
   const now = item.promoPrice ?? item.price;
   const was = item.previousPrice && item.previousPrice !== now ? item.previousPrice : null;
+  const off = was && now ? Math.round((1 - now / was) * 100) : null;
   return (
     <a href={item.url} target="_blank" rel="noreferrer" className="glass block rounded-3xl px-4 py-4">
       <span className="block">{item.name}</span>
       <span className="mt-1 block text-sm text-mist">
-        {[item.size, money(now), was ? `was ${money(was)}` : null].filter(Boolean).join(" · ")}
+        {[item.size, money(now), was ? `was ${money(was)}` : null, off ? `${off}% off` : null].filter(Boolean).join(" · ")}
       </span>
       {item.detail ? <span className="mt-1 block text-sm text-aqua">{item.detail}</span> : null}
     </a>
