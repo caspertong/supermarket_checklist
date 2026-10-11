@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-ink: #0b1220;
+  --color-aqua: #7ee0d6;
+  --color-amber: #f0b429;
+  --color-mist: #93a0b5;
+  --font-sans: var(--font-geist-sans), sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(900px 420px at 50% -12%, rgba(126, 224, 214, 0.16), transparent 58%),
+    radial-gradient(700px 380px at 110% 110%, rgba(240, 180, 41, 0.08), transparent 46%),
+    #0b1220;
+  color: #e8eef7;
+  font-family: var(--font-sans);
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px);
+}
+
+.rise {
+  animation: rise 280ms ease;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
