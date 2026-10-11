@@ -33,6 +33,7 @@ export function Checklist({
   const [iosHint, setIosHint] = useState(false);
   const revisionRef = useRef(0);
   const pendingRef = useRef(0);
+  const addingRef = useRef(false);
 
   function adopt(next: ListDTO) {
     revisionRef.current = next.revision;
@@ -97,6 +98,10 @@ export function Checklist({
   const doneItems = list?.items.filter((item) => item.checked) ?? [];
 
   async function addResolved(name: string, slug: string | null) {
+    if (addingRef.current || !name) return;
+    addingRef.current = true;
+    const previousDraft = draft;
+    setDraft("");
     const ok = await mutate(() =>
       api<ListDTO>("/api/items", {
         method: "POST",
@@ -104,10 +109,16 @@ export function Checklist({
       }),
     );
     if (ok) {
-      setDraft("");
       setQuantity(1);
       setUnit("pcs");
+    } else {
+      setDraft(previousDraft);
     }
+    addingRef.current = false;
+  }
+
+  function remove(id: string) {
+    return mutate(() => api<ListDTO>(`/api/items/${id}`, { method: "DELETE" }));
   }
 
   function onSubmit(event: FormEvent) {
@@ -237,6 +248,7 @@ export function Checklist({
               )
             }
             onEdit={() => setEditing(item)}
+            onRemove={() => void remove(item.id)}
           />
         ))}
         {doneItems.length > 0 ? <h2 className="pt-4 text-sm uppercase tracking-[0.16em] text-mist">In the basket</h2> : null}
@@ -261,6 +273,7 @@ export function Checklist({
               )
             }
             onEdit={() => setEditing(item)}
+            onRemove={() => void remove(item.id)}
           />
         ))}
       </section>
@@ -334,7 +347,7 @@ export function Checklist({
             if (ok) setEditing(null);
           }}
           onDelete={async () => {
-            const ok = await mutate(() => api<ListDTO>(`/api/items/${editing.id}`, { method: "DELETE" }));
+            const ok = await remove(editing.id);
             if (ok) setEditing(null);
           }}
         />
@@ -362,11 +375,13 @@ function ItemRow({
   onCheck,
   onQuantity,
   onEdit,
+  onRemove,
 }: {
   item: ItemDTO;
   onCheck: () => void;
   onQuantity: (quantity: number) => void;
   onEdit: () => void;
+  onRemove: () => void;
 }) {
   const step = stepOf(item.unit);
   const minimum = item.unit === "kg" ? 0.25 : 1;
@@ -383,7 +398,12 @@ function ItemRow({
           <StepButton label={`More ${item.name}`} onClick={() => onQuantity(Math.min(99, item.quantity + step))} />
         </div>
         {item.note ? <p className="mt-1 text-sm text-mist">{item.note}</p> : null}
-        {item.addedBy ? <p className="mt-1 text-xs text-mist">Added by {item.addedBy}</p> : null}
+        <div className="mt-1 flex items-center gap-3">
+          {item.addedBy ? <p className="text-xs text-mist">Added by {item.addedBy}</p> : null}
+          <button type="button" onClick={onRemove} className="text-sm text-amber">
+            Remove
+          </button>
+        </div>
       </div>
       <button
         type="button"
