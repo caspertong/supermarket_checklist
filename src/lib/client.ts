@@ -20,7 +20,6 @@ export function urlBase64ToUint8Array(value: string) {
   return Uint8Array.from(raw, (char) => char.charCodeAt(0));
 }
 
-export function formatAmount(quantity: number, unit: string) {
-  const shown = Number.isInteger(quantity) ? String(quantity) : String(quantity);
-  return `${shown} ${unit}`;
+export function formatQuantity(quantity: number) {
+  return Number.isInteger(quantity) ? String(quantity) : String(quantity);
 }

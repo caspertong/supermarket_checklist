@@ -6,7 +6,6 @@ import { formatDateLabel, todaySGT } from "./sgt";
 import type { Session } from "./session";
 import type { ArchiveEntry, ItemDTO, ListDTO, StoreName, Unit } from "./types";
 
-const UNITS = new Set<Unit>(["pcs", "pkt", "kg"]);
 const STORES = new Set<StoreName>(["fairprice", "shengsiong"]);
 
 export class ListError extends Error {
@@ -30,10 +29,10 @@ function asStore(value: unknown): StoreName | null {
 
 function asQuantity(value: unknown) {
   const quantity = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(quantity) || quantity < 0.25 || quantity > 99) {
-    throw new ListError(400, "Quantity needs to be between 0.25 and 99.");
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+    throw new ListError(400, "Quantity needs to be a whole number from 1 to 99.");
   }
-  return Math.round(quantity * 4) / 4;
+  return quantity;
 }
 
 function asName(value: unknown) {
@@ -171,7 +170,6 @@ export async function addItem(
 ) {
   const name = asName(input.name);
   const quantity = input.quantity == null ? 1 : asQuantity(input.quantity);
-  const unit = asUnit(input.unit);
   const note = asNote(input.note);
   const bySlug =
     typeof input.slug === "string" ? CATALOG.find((entry) => entry.slug === input.slug) : undefined;
@@ -194,7 +192,7 @@ export async function addItem(
     name: displayName,
     catalogSlug: slug,
     quantity,
-    unit,
+    unit: "pcs",
     note,
     addedBy: session.memberId,
     position,
@@ -236,10 +234,6 @@ export async function updateItem(
     patch.catalogSlug = match?.slug ?? null;
   }
   if (input.quantity !== undefined) patch.quantity = asQuantity(input.quantity);
-  if (input.unit !== undefined) {
-    if (!UNITS.has(input.unit as Unit)) throw new ListError(400, "Use pcs, pkt, or kg.");
-    patch.unit = input.unit as Unit;
-  }
   if (input.note !== undefined) patch.note = asNote(input.note);
   let checkedChange: boolean | null = null;
   if (input.checked !== undefined) {
@@ -322,7 +316,7 @@ export async function copyUnchecked(session: Session, fromDate: string) {
   for (const item of pending) {
     const key = normalizeQuery(item.name);
     const match = existing.find(
-      (row) => !row.checked && row.unit === item.unit && normalizeQuery(row.name) === key,
+      (row) => !row.checked && normalizeQuery(row.name) === key,
     );
     if (match) {
       await db

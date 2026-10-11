@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Gate } from "@/components/gate";
-import { api, formatAmount } from "@/lib/client";
+import { api, formatQuantity } from "@/lib/client";
 import type { ArchiveEntry, ListDTO, StoreName } from "@/lib/types";
 
 const STORE_LABEL: Record<StoreName, string> = {
@@ -113,7 +113,7 @@ function Day({ date }: { date: string }) {
             <Image src={item.image} alt="" width={48} height={48} unoptimized className="size-12 rounded-2xl object-cover" />
             <span className="min-w-0 flex-1">
               <span className={`block truncate ${item.checked ? "line-through" : ""}`}>{item.name}</span>
-              <span className="text-sm text-mist">{formatAmount(item.quantity, item.unit)}</span>
+              <span className="text-sm text-mist">{formatQuantity(item.quantity)}</span>
             </span>
           </li>
         ))}

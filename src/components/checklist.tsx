@@ -3,11 +3,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { CATEGORY_LABEL, resolveEntry, suggestItems } from "@/data/catalog";
-import { api, formatAmount, urlBase64ToUint8Array } from "@/lib/client";
-import type { ItemDTO, ListDTO, StoreName, Unit } from "@/lib/types";
+import { localName, resolveEntry, suggestItems } from "@/data/catalog";
+import { api, formatQuantity, urlBase64ToUint8Array } from "@/lib/client";
+import type { ItemDTO, ListDTO, StoreName } from "@/lib/types";
 
+type Row = ItemDTO & { key: string };
+type View = Omit<ListDTO, "items"> & { items: Row[] };
 type TodayResponse = { unchanged: true; revision: number } | (ListDTO & { unchanged: false });
+
+type PendingOp =
+  | { kind: "add"; key: string; name: string; slug: string | null; image: string; quantity: number; addedBy: string }
+  | { kind: "check"; key: string; checked: boolean; actor: string }
+  | { kind: "qty"; key: string; quantity: number }
+  | { kind: "edit"; key: string; name: string; quantity: number; note: string | null; slug: string | null; image: string }
+  | { kind: "remove"; key: string };
 
 const STORE_LABEL: Record<StoreName, string> = {
   fairprice: "FairPrice",
@@ -21,37 +30,74 @@ export function Checklist({
   member: { name: string };
   onSignOut: () => Promise<void>;
 }) {
-  const [list, setList] = useState<ListDTO | null>(null);
+  const [list, setList] = useState<View | null>(null);
   const [draft, setDraft] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [unit, setUnit] = useState<Unit>("pcs");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [editing, setEditing] = useState<ItemDTO | null>(null);
+  const [editing, setEditing] = useState<Row | null>(null);
   const [nudgeOpen, setNudgeOpen] = useState(false);
   const [alertsOn, setAlertsOn] = useState(false);
   const [iosHint, setIosHint] = useState(false);
   const revisionRef = useRef(0);
   const pendingRef = useRef(0);
   const addingRef = useRef(false);
+  const serverRef = useRef<ListDTO | null>(null);
+  const opsRef = useRef<PendingOp[]>([]);
+  const queueRef = useRef(Promise.resolve());
+  const idToKey = useRef(new Map<string, string>());
 
-  function adopt(next: ListDTO) {
-    revisionRef.current = next.revision;
-    setList(next);
+  function paint(base: ListDTO) {
+    serverRef.current = base;
+    revisionRef.current = base.revision;
+    let items: Row[] = base.items.map((item) => ({
+      ...item,
+      key: idToKey.current.get(item.id) ?? item.id,
+    }));
+    for (const op of opsRef.current) items = applyOp(items, op);
+    const next = { ...base, items };
+    setList((current) => (current && sameView(current, next) ? current : next));
   }
 
-  async function mutate(run: () => Promise<ListDTO>) {
+  function commit(op: PendingOp, send: () => Promise<ListDTO>) {
+    const base = serverRef.current;
+    if (!base) return Promise.resolve(false);
+    opsRef.current = [...opsRef.current, op];
+    paint(base);
     pendingRef.current += 1;
-    setError(null);
-    try {
-      adopt(await run());
-      return true;
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Something went wrong.");
-      return false;
-    } finally {
-      pendingRef.current -= 1;
+    const job = queueRef.current.then(async () => {
+      const before = serverRef.current;
+      try {
+        const server = await send();
+        if (op.kind === "add" && before) {
+          const known = new Set(before.items.map((item) => item.id));
+          const created = server.items.find((item) => !known.has(item.id));
+          if (created) idToKey.current.set(created.id, op.key);
+        }
+        opsRef.current = opsRef.current.filter((pending) => pending !== op);
+        paint(server);
+        return true;
+      } catch (caught) {
+        opsRef.current = opsRef.current.filter((pending) => pending !== op);
+        if (before) paint(before);
+        setError(caught instanceof Error ? caught.message : "Something went wrong.");
+        return false;
+      } finally {
+        pendingRef.current -= 1;
+      }
+    });
+    queueRef.current = job.then(
+      () => undefined,
+      () => undefined,
+    );
+    return job;
+  }
+
+  function serverId(key: string) {
+    for (const [id, rowKey] of idToKey.current) {
+      if (rowKey === key && !id.startsWith("tmp-")) return id;
     }
+    return key.startsWith("tmp-") ? null : key;
   }
 
   useEffect(() => {
@@ -65,7 +111,7 @@ export function Checklist({
     async function load() {
       const data = await api<TodayResponse>("/api/today?visible=1");
       if (stopped || data.unchanged) return;
-      adopt(data);
+      paint(data);
     }
 
     void load().catch((caught) => {
@@ -81,7 +127,7 @@ export function Checklist({
       const visible = document.visibilityState === "visible" ? "1" : "0";
       void api<TodayResponse>(`/api/today?revision=${revisionRef.current}&visible=${visible}`)
         .then((data) => {
-          if (!stopped && !data.unchanged) adopt(data);
+          if (!stopped && !data.unchanged) paint(data);
         })
         .catch(() => {});
     }, 2000);
@@ -97,41 +143,73 @@ export function Checklist({
   const openItems = list?.items.filter((item) => !item.checked) ?? [];
   const doneItems = list?.items.filter((item) => item.checked) ?? [];
 
-  async function addResolved(name: string, slug: string | null) {
+  function addResolved(name: string, slug: string | null, image: string) {
     if (addingRef.current || !name) return;
     addingRef.current = true;
-    const previousDraft = draft;
+    const key = `tmp-${crypto.randomUUID()}`;
+    const amount = quantity;
+    idToKey.current.set(key, key);
     setDraft("");
-    const ok = await mutate(() =>
-      api<ListDTO>("/api/items", {
-        method: "POST",
-        body: JSON.stringify({ name, slug, quantity, unit }),
-      }),
-    );
-    if (ok) {
-      setQuantity(1);
-      setUnit("pcs");
-    } else {
-      setDraft(previousDraft);
-    }
-    addingRef.current = false;
+    setQuantity(1);
+    void commit(
+      { kind: "add", key, name, slug, image, quantity: amount, addedBy: member.name },
+      () =>
+        api<ListDTO>("/api/items", {
+          method: "POST",
+          body: JSON.stringify({ name, slug, quantity: amount }),
+        }),
+    ).then((ok) => {
+      if (!ok) setDraft(name);
+    });
+    window.requestAnimationFrame(() => {
+      addingRef.current = false;
+    });
   }
 
-  function remove(id: string) {
-    return mutate(() => api<ListDTO>(`/api/items/${id}`, { method: "DELETE" }));
+  function patchRow(key: string, op: PendingOp, body: Record<string, unknown>) {
+    return commit(op, () => {
+      const id = serverId(key);
+      if (!id) {
+        if (!serverRef.current) throw new Error("The list is still opening.");
+        return Promise.resolve(serverRef.current);
+      }
+      return api<ListDTO>(`/api/items/${id}`, { method: "PATCH", body: JSON.stringify(body) });
+    });
+  }
+
+  function remove(key: string) {
+    return commit({ kind: "remove", key }, () => {
+      const id = serverId(key);
+      if (!id) {
+        if (!serverRef.current) throw new Error("The list is still opening.");
+        return Promise.resolve(serverRef.current);
+      }
+      return api<ListDTO>(`/api/items/${id}`, { method: "DELETE" });
+    });
   }
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     const resolved = resolveEntry(draft);
     if (!resolved.name) return;
-    void addResolved(resolved.name, resolved.slug);
+    addResolved(resolved.name, resolved.slug, resolved.image);
   }
 
   async function chooseStore(store: StoreName) {
     if (!list) return;
     const next = list.store === store ? null : store;
-    await mutate(() => api<ListDTO>("/api/today", { method: "PATCH", body: JSON.stringify({ store: next }) }));
+    const base = serverRef.current;
+    if (base) paint({ ...base, store: next });
+    pendingRef.current += 1;
+    try {
+      const saved = await api<ListDTO>("/api/today", { method: "PATCH", body: JSON.stringify({ store: next }) });
+      if (opsRef.current.length === 0) paint(saved);
+    } catch (caught) {
+      if (base && opsRef.current.length === 0) paint(base);
+      setError(caught instanceof Error ? caught.message : "Could not update the store.");
+    } finally {
+      pendingRef.current -= 1;
+    }
   }
 
   async function sendNudge(kind: "fairprice" | "shengsiong" | "check") {
@@ -142,7 +220,7 @@ export function Checklist({
         method: "POST",
         body: JSON.stringify({ kind }),
       });
-      if (result.list) adopt(result.list);
+      if (result.list && opsRef.current.length === 0) paint(result.list);
       setNotice(kind === "check" ? "Nudge sent." : "They'll know where you are.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not send the nudge.");
@@ -229,51 +307,31 @@ export function Checklist({
         ) : null}
         {openItems.map((item) => (
           <ItemRow
-            key={item.id}
+            key={item.key}
             item={item}
             onCheck={() =>
-              void mutate(() =>
-                api<ListDTO>(`/api/items/${item.id}`, {
-                  method: "PATCH",
-                  body: JSON.stringify({ checked: true }),
-                }),
-              )
+              void patchRow(item.key, { kind: "check", key: item.key, checked: true, actor: member.name }, { checked: true })
             }
             onQuantity={(next) =>
-              void mutate(() =>
-                api<ListDTO>(`/api/items/${item.id}`, {
-                  method: "PATCH",
-                  body: JSON.stringify({ quantity: next }),
-                }),
-              )
+              void patchRow(item.key, { kind: "qty", key: item.key, quantity: next }, { quantity: next })
             }
             onEdit={() => setEditing(item)}
-            onRemove={() => void remove(item.id)}
+            onRemove={() => void remove(item.key)}
           />
         ))}
         {doneItems.length > 0 ? <h2 className="pt-4 text-sm uppercase tracking-[0.16em] text-mist">In the basket</h2> : null}
         {doneItems.map((item) => (
           <ItemRow
-            key={item.id}
+            key={item.key}
             item={item}
             onCheck={() =>
-              void mutate(() =>
-                api<ListDTO>(`/api/items/${item.id}`, {
-                  method: "PATCH",
-                  body: JSON.stringify({ checked: false }),
-                }),
-              )
+              void patchRow(item.key, { kind: "check", key: item.key, checked: false, actor: member.name }, { checked: false })
             }
             onQuantity={(next) =>
-              void mutate(() =>
-                api<ListDTO>(`/api/items/${item.id}`, {
-                  method: "PATCH",
-                  body: JSON.stringify({ quantity: next }),
-                }),
-              )
+              void patchRow(item.key, { kind: "qty", key: item.key, quantity: next }, { quantity: next })
             }
             onEdit={() => setEditing(item)}
-            onRemove={() => void remove(item.id)}
+            onRemove={() => void remove(item.key)}
           />
         ))}
       </section>
@@ -289,37 +347,23 @@ export function Checklist({
                 <li key={item.slug}>
                   <button
                     type="button"
-                    onClick={() => void addResolved(item.name, item.slug)}
+                    onClick={() => addResolved(item.name, item.slug, item.image)}
                     className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
                   >
                     <Thumb src={item.image} />
                     <span>
                       <span className="block">{item.name}</span>
-                      <span className="block text-xs text-mist">{CATEGORY_LABEL[item.category]}</span>
+                      <span className="block text-xs text-mist">{localName(item)}</span>
                     </span>
                   </button>
                 </li>
               ))}
             </ul>
           ) : null}
-          <div className="mb-2 flex gap-2">
-            {(["pcs", "pkt", "kg"] as Unit[]).map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                onClick={() => setUnit(choice)}
-                className={`h-9 rounded-full px-3 text-xs uppercase tracking-[0.14em] ${
-                  unit === choice ? "bg-aqua text-ink" : "bg-white/10 text-mist"
-                }`}
-              >
-                {choice}
-              </button>
-            ))}
-            <span className="ml-auto flex items-center gap-2 text-sm">
-              <StepButton label="Decrease quantity" onClick={() => setQuantity((value) => Math.max(stepOf(unit), value - stepOf(unit)))} />
-              <span className="w-8 text-center">{quantity}</span>
-              <StepButton label="Increase quantity" onClick={() => setQuantity((value) => Math.min(99, value + stepOf(unit)))} />
-            </span>
+          <div className="mb-2 flex items-center justify-end gap-2 text-sm">
+            <StepButton label="Decrease quantity" onClick={() => setQuantity((value) => Math.max(1, value - 1))} />
+            <span className="w-8 text-center">{quantity}</span>
+            <StepButton label="Increase quantity" onClick={() => setQuantity((value) => Math.min(99, value + 1))} />
           </div>
           <div className="glass flex items-center gap-2 rounded-full p-1.5">
             <input
@@ -340,15 +384,26 @@ export function Checklist({
         <Editor
           item={editing}
           onClose={() => setEditing(null)}
-          onSave={async (patch) => {
-            const ok = await mutate(() =>
-              api<ListDTO>(`/api/items/${editing.id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+          onSave={(patch) => {
+            const resolved = resolveEntry(patch.name);
+            setEditing(null);
+            void patchRow(
+              editing.key,
+              {
+                kind: "edit",
+                key: editing.key,
+                name: resolved.name,
+                quantity: patch.quantity,
+                note: patch.note || null,
+                slug: resolved.slug,
+                image: resolved.image,
+              },
+              { name: resolved.name, quantity: patch.quantity, note: patch.note },
             );
-            if (ok) setEditing(null);
           }}
-          onDelete={async () => {
-            const ok = await remove(editing.id);
-            if (ok) setEditing(null);
+          onDelete={() => {
+            setEditing(null);
+            void remove(editing.key);
           }}
         />
       ) : null}
@@ -377,14 +432,12 @@ function ItemRow({
   onEdit,
   onRemove,
 }: {
-  item: ItemDTO;
+  item: Row;
   onCheck: () => void;
   onQuantity: (quantity: number) => void;
   onEdit: () => void;
   onRemove: () => void;
 }) {
-  const step = stepOf(item.unit);
-  const minimum = item.unit === "kg" ? 0.25 : 1;
   return (
     <article className={`glass rise flex gap-3 rounded-3xl p-3 ${item.checked ? "opacity-60" : ""}`}>
       <Thumb src={item.image} />
@@ -393,9 +446,9 @@ function ItemRow({
           <span className={item.checked ? "line-through" : ""}>{item.name}</span>
         </button>
         <div className="mt-2 flex items-center gap-2">
-          <StepButton label={`Less ${item.name}`} onClick={() => onQuantity(Math.max(minimum, item.quantity - step))} />
-          <span className="text-sm text-mist">{formatAmount(item.quantity, item.unit)}</span>
-          <StepButton label={`More ${item.name}`} onClick={() => onQuantity(Math.min(99, item.quantity + step))} />
+          <StepButton label={`Less ${item.name}`} onClick={() => onQuantity(Math.max(1, Math.round(item.quantity) - 1))} />
+          <span className="text-sm text-mist">{formatQuantity(item.quantity)}</span>
+          <StepButton label={`More ${item.name}`} onClick={() => onQuantity(Math.min(99, Math.round(item.quantity) + 1))} />
         </div>
         {item.note ? <p className="mt-1 text-sm text-mist">{item.note}</p> : null}
         <div className="mt-1 flex items-center gap-3">
@@ -426,14 +479,13 @@ function Editor({
   onSave,
   onDelete,
 }: {
-  item: ItemDTO;
+  item: Row;
   onClose: () => void;
-  onSave: (patch: { name: string; quantity: number; unit: Unit; note: string }) => Promise<void>;
-  onDelete: () => Promise<void>;
+  onSave: (patch: { name: string; quantity: number; note: string }) => void;
+  onDelete: () => void;
 }) {
   const [name, setName] = useState(item.name);
-  const [quantity, setQuantity] = useState(String(item.quantity));
-  const [unit, setUnit] = useState<Unit>(item.unit);
+  const [quantity, setQuantity] = useState(String(Math.max(1, Math.round(item.quantity))));
   const [note, setNote] = useState(item.note ?? "");
 
   return (
@@ -446,29 +498,15 @@ function Editor({
           className="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-base text-white outline-none"
         />
       </label>
-      <div className="flex gap-2">
-        <label className="block flex-1 text-sm text-mist">
-          Quantity
-          <input
-            value={quantity}
-            inputMode="decimal"
-            onChange={(event) => setQuantity(event.target.value)}
-            className="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-base text-white outline-none"
-          />
-        </label>
-        <div className="flex items-end gap-2">
-          {(["pcs", "pkt", "kg"] as Unit[]).map((choice) => (
-            <button
-              key={choice}
-              type="button"
-              onClick={() => setUnit(choice)}
-              className={`h-12 rounded-2xl px-3 text-xs uppercase ${unit === choice ? "bg-aqua text-ink" : "bg-white/10 text-mist"}`}
-            >
-              {choice}
-            </button>
-          ))}
-        </div>
-      </div>
+      <label className="block text-sm text-mist">
+        Quantity
+        <input
+          value={quantity}
+          inputMode="numeric"
+          onChange={(event) => setQuantity(event.target.value)}
+          className="mt-1 h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-base text-white outline-none"
+        />
+      </label>
       <label className="block text-sm text-mist">
         Note
         <input
@@ -480,7 +518,7 @@ function Editor({
       <button
         type="button"
         className="h-12 w-full rounded-full bg-aqua font-medium text-ink"
-        onClick={() => void onSave({ name, quantity: Number(quantity), unit, note })}
+        onClick={() => void onSave({ name, quantity: Number(quantity), note })}
       >
         Save
       </button>
@@ -531,8 +569,57 @@ function StepButton({ label, onClick }: { label: string; onClick: () => void }) 
   );
 }
 
-function stepOf(unit: Unit) {
-  return unit === "kg" ? 0.5 : 1;
+function sameView(current: View, next: View) {
+  if (current.store !== next.store || current.date !== next.date || current.items.length !== next.items.length) {
+    return false;
+  }
+  return current.items.every((item, index) => {
+    const other = next.items[index];
+    return (
+      item.key === other.key &&
+      item.name === other.name &&
+      item.quantity === other.quantity &&
+      item.checked === other.checked &&
+      item.note === other.note &&
+      item.image === other.image
+    );
+  });
+}
+
+function applyOp(items: Row[], op: PendingOp): Row[] {
+  if (op.kind === "add") {
+    if (items.some((item) => item.key === op.key)) return items;
+    return [
+      ...items,
+      {
+        id: op.key,
+        key: op.key,
+        name: op.name,
+        slug: op.slug,
+        image: op.image,
+        quantity: op.quantity,
+        unit: "pcs",
+        note: null,
+        checked: false,
+        addedBy: op.addedBy,
+        checkedBy: null,
+      },
+    ];
+  }
+  if (op.kind === "remove") return items.filter((item) => item.key !== op.key);
+  if (op.kind === "check") {
+    return items.map((item) =>
+      item.key === op.key ? { ...item, checked: op.checked, checkedBy: op.checked ? op.actor : null } : item,
+    );
+  }
+  if (op.kind === "qty") {
+    return items.map((item) => (item.key === op.key ? { ...item, quantity: op.quantity } : item));
+  }
+  return items.map((item) =>
+    item.key === op.key
+      ? { ...item, name: op.name, quantity: op.quantity, note: op.note, slug: op.slug, image: op.image }
+      : item,
+  );
 }
 
 async function subscribe() {
