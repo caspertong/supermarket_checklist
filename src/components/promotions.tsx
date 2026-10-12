@@ -38,14 +38,14 @@ function PromotionList() {
   const current = data?.[store];
   const needle = query.trim().toLowerCase();
   const matched = (current?.items ?? []).filter((item) => !needle || item.name.toLowerCase().includes(needle));
-  const visible = matched.slice(0, 60);
+  const visible = matched.slice(0, 100);
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
       <BackToChecklist />
       <h1 className="mt-4 text-3xl font-semibold tracking-tight">Promotion</h1>
       <p className="mt-2 text-sm leading-6 text-mist">
-        Price cuts of 30% or more. FairPrice refreshes Thursday at 10am, Sheng Siong on Friday at 10am.
+        Price cuts of 30% or more. FairPrice lists every cut. Sheng Siong leads with household essentials, then the other deep cuts. Both refresh at 10am, Thursday and Friday.
       </p>
       <div className="mt-4 flex gap-2">
         {(Object.keys(STORE_LABEL) as StoreName[]).map((name) => (

@@ -765,6 +765,94 @@ const thumbs = {
     <path d="M96 70c10 16 12 32 6 46" fill="#e7a0a0"/>
     <rect x="70" y="48" width="16" height="18" rx="4" fill="#f7efe2"/>
   `),
+  "mee-sua": card("#f5efe6", `
+    <path d="M52 108c6-28 10-48 8-62" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M64 112c4-32 6-52 4-68" fill="none" stroke="#f5efe6" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M76 106c6-30 8-50 6-64" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M88 110c2-34 4-54 2-70" fill="none" stroke="#f5efe6" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M100 104c6-26 8-44 4-58" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+    <ellipse cx="80" cy="52" rx="28" ry="10" fill="#e8dfd4" opacity="0.5"/>
+  `),
+  "tang-hoon": card("#f0f4f8", `
+    <path d="M48 58c12 20 10 38 4 58" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <path d="M68 54c10 24 8 42 2 62" fill="none" stroke="#e8eef5" stroke-width="4" stroke-linecap="round"/>
+    <path d="M88 56c8 22 10 40 4 60" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <path d="M108 60c6 18 8 36 2 54" fill="none" stroke="#dce6f0" stroke-width="4" stroke-linecap="round"/>
+  `),
+  enoki: card("#fff8e8", `
+    <rect x="58" y="52" width="6" height="58" rx="3" fill="#fff"/>
+    <rect x="68" y="48" width="6" height="62" rx="3" fill="#f7f3ea"/>
+    <rect x="78" y="50" width="6" height="60" rx="3" fill="#fff"/>
+    <rect x="88" y="46" width="6" height="64" rx="3" fill="#f7f3ea"/>
+    <rect x="98" y="52" width="6" height="58" rx="3" fill="#fff"/>
+    <ellipse cx="80" cy="44" rx="30" ry="8" fill="#f0b429" opacity="0.35"/>
+  `),
+  shiitake: card("#8d6e63", `
+    <ellipse cx="80" cy="72" rx="38" ry="24" fill="#6d4c41"/>
+    <ellipse cx="80" cy="68" rx="24" ry="14" fill="#8d6e63"/>
+    <rect x="72" y="84" width="16" height="34" rx="8" fill="#f3e5d0"/>
+    <path d="M58 70c6-6 14-8 22-6M82 64c8-4 16-2 24 4" fill="none" stroke="#5d4037" stroke-width="2" opacity="0.5"/>
+  `),
+  "straw-mushroom": card("#f7f3ea", `
+    <path d="M80 44c-18 8-22 28-14 40 4 6 10 8 14 8s10-2 14-8c8-12 4-32-14-40z" fill="#fff"/>
+    <ellipse cx="80" cy="88" rx="14" ry="8" fill="#f3e5d0"/>
+    <rect x="74" y="88" width="12" height="28" rx="6" fill="#efe6d8"/>
+  `),
+  batang: card("#4a90c4", `
+    <path d="M32 88c26-24 54-28 86-18 10 4 18 12 22 18-20 8-34 8-48 6 14 4 26 8 44 16-12 10-24 14-36 12-32-2-58-12-76-26-8-6-8-10 0-14z" fill="#4a90c4"/>
+    <path d="M58 82c18 6 32 6 50 0" stroke="#b3d9f2" stroke-width="3" fill="none"/>
+    <circle cx="54" cy="84" r="3" fill="#0b1220"/>
+    <path d="M70 78c4 2 8 2 12 0" stroke="#2e6f9e" stroke-width="2" fill="none"/>
+  `),
+  "cheese-tofu": card("#fff3c4", `
+    <rect x="52" y="64" width="56" height="48" rx="10" fill="#fffaf3"/>
+    <rect x="58" y="72" width="44" height="32" rx="6" fill="#fff8e1"/>
+    <circle cx="72" cy="86" r="6" fill="#f0b429"/>
+    <circle cx="88" cy="92" r="5" fill="#f0b429"/>
+    <circle cx="96" cy="78" r="4" fill="#f0b429"/>
+  `),
+  "crab-stick": card("#ff8a80", `
+    <rect x="44" y="78" width="72" height="20" rx="10" fill="#ffab91"/>
+    <path d="M44 88h72" stroke="#fff" stroke-width="3" opacity="0.6"/>
+    <rect x="48" y="82" width="64" height="12" rx="6" fill="#ff8a80"/>
+    <path d="M52 88c8-4 16-4 24 0s16 4 24 0" fill="none" stroke="#fff" stroke-width="2"/>
+  `),
+  "pork-ball": card("#f6c1c1", `
+    <circle cx="64" cy="92" r="18" fill="#f6c1c1"/><circle cx="96" cy="88" r="20" fill="#f0a0a0"/>
+    <circle cx="80" cy="108" r="14" fill="#f8d4d4"/>
+  `),
+  "beef-ball": card("#c96b6b", `
+    <circle cx="64" cy="92" r="18" fill="#c96b6b"/><circle cx="96" cy="88" r="20" fill="#b85c5c"/>
+    <circle cx="80" cy="108" r="14" fill="#d97878"/>
+  `),
+  "ring-roll": card("#f0b429", `
+    <ellipse cx="64" cy="88" rx="22" ry="14" fill="none" stroke="#ffe38a" stroke-width="10"/>
+    <ellipse cx="96" cy="88" rx="22" ry="14" fill="none" stroke="#f0b429" stroke-width="10"/>
+    <ellipse cx="80" cy="104" rx="18" ry="11" fill="none" stroke="#fff3c4" stroke-width="8"/>
+  `),
+  "shabu-pork": card("#f3b7a4", `
+    <rect x="40" y="72" width="80" height="44" rx="8" fill="#f7efe2"/>
+    <path d="M44 82c16-6 32-6 48 0s32 6 48 0" fill="none" stroke="#f3b7a4" stroke-width="8" stroke-linecap="round"/>
+    <path d="M44 96c12-4 24-4 36 0s24 4 36 0" fill="none" stroke="#e78a8a" stroke-width="6" stroke-linecap="round"/>
+  `),
+  "shabu-beef": card("#e57373", `
+    <rect x="40" y="72" width="80" height="44" rx="8" fill="#ffebee"/>
+    <path d="M44 82c16-6 32-6 48 0s32 6 48 0" fill="none" stroke="#e57373" stroke-width="8" stroke-linecap="round"/>
+    <path d="M44 96c12-4 24-4 36 0s24 4 36 0" fill="none" stroke="#c62828" stroke-width="6" stroke-linecap="round"/>
+  `),
+  "quail-egg": card("#fff8e1", `
+    <circle cx="68" cy="90" r="14" fill="#fffaf3" stroke="#f0b429" stroke-width="2"/>
+    <circle cx="92" cy="86" r="16" fill="#fff" stroke="#f0b429" stroke-width="2"/>
+    <circle cx="80" cy="108" r="11" fill="#fffde7" stroke="#f0b429" stroke-width="2"/>
+    <circle cx="70" cy="88" r="2" fill="#8d6e63"/><circle cx="90" cy="84" r="2" fill="#8d6e63"/>
+  `),
+  "hotpot-soup-base": card("#c62828", `
+    <path d="M58 72h44l6 10v28a16 16 0 0 1-16 16H68a16 16 0 0 1-16-16V82l6-10z" fill="#c62828"/>
+    <ellipse cx="80" cy="70" rx="22" ry="8" fill="#8d1a1a"/>
+    <rect x="68" y="88" width="24" height="14" rx="3" fill="#f0b429"/>
+    <path d="M72 52c4-8 8-10 8-10s4 2 8 10" fill="none" stroke="#ff8a65" stroke-width="3" stroke-linecap="round"/>
+    <path d="M66 56c2-6 4-8 4-8s2 2 4 8M90 56c2-6 4-8 4-8s2 2 4 8" fill="none" stroke="#ffab91" stroke-width="2" stroke-linecap="round"/>
+  `),
 };
 
 function write(file, contents) {

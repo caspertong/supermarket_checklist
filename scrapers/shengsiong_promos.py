@@ -13,6 +13,7 @@ import websocket
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from essentials import fill_promotions
 from promo_store import keep_major, save_store
 
 SGT = ZoneInfo("Asia/Singapore")
@@ -106,8 +107,8 @@ def pull():
                 continue
             seen.add(row["url"])
             items.append(row)
-        items = keep_major(items)
-        print(f"shengsiong {len(items)} major cuts from {total}", flush=True)
+        items = fill_promotions(keep_major(items))
+        print(f"shengsiong {len(items)} promotions from {total}", flush=True)
     finally:
         socket.close()
 
@@ -117,7 +118,7 @@ def pull():
             "fetchedAt": datetime.now(SGT).isoformat(timespec="seconds"),
             "validFrom": None,
             "validTill": None,
-            "note": "At least 30% off. The monthly leaflet is left out.",
+            "note": "Household essentials first, then the other cuts of 30% or more.",
             "leafletUrl": None,
             "items": items,
         },
