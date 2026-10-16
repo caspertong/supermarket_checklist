@@ -1,6 +1,12 @@
 {
-    "crons": [
-      { "path": "/api/promotions/refresh?store=fairprice", "schedule": "0 2 * * 4" },
-      { "path": "/api/promotions/refresh?store=shengsiong", "schedule": "0 2 * * 5" }
-    ]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/promotions/refresh?store=fairprice", "schedule": "0 2 * * 4" },
+    { "path": "/api/promotions/refresh?store=shengsiong", "schedule": "0 2 * * 5" }
+  ],
+  "functions": {
+    "src/app/api/promotions/refresh/route.ts": {
+      "maxDuration": 300
+    }
   }
+}

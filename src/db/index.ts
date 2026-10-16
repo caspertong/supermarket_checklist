@@ -45,6 +45,11 @@ const STATEMENTS = [
     updated_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE INDEX IF NOT EXISTS items_list_idx ON items (list_id)`,
+  `CREATE TABLE IF NOT EXISTS promotion_stores (
+    store text PRIMARY KEY,
+    payload jsonb NOT NULL,
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
 ];
 
 export type Database = NeonHttpDatabase<typeof schema>;

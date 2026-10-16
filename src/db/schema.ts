@@ -9,6 +9,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { StorePromos } from "@/lib/types";
 
 export type PushSubscriptionJSON = {
   endpoint: string;
@@ -54,6 +55,12 @@ export const lists = pgTable(
   },
   (table) => [uniqueIndex("lists_household_date").on(table.householdId, table.listDate)],
 );
+
+export const promotionStores = pgTable("promotion_stores", {
+  store: text("store").primaryKey(),
+  payload: jsonb("payload").$type<StorePromos>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const items = pgTable("items", {
   id: text("id").primaryKey(),
