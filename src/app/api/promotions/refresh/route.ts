@@ -4,11 +4,17 @@ import { isStoreName, refreshPromotionStore } from "@/lib/promotions/repository"
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
+function bearerSecret(request: Request) {
+  const header = request.headers.get("authorization")?.trim();
+  if (!header) return null;
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return (match?.[1] ?? header).trim();
+}
+
 function authorized(request: Request) {
-  const secret = process.env.CRON_SECRET;
+  const secret = process.env.CRON_SECRET?.trim();
   if (!secret) return process.env.NODE_ENV !== "production";
-  const header = request.headers.get("authorization");
-  return header === `Bearer ${secret}`;
+  return bearerSecret(request) === secret;
 }
 
 export async function GET(request: Request) {
