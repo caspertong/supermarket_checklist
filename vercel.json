@@ -6,7 +6,8 @@
   ],
   "functions": {
     "src/app/api/promotions/refresh/route.ts": {
-      "maxDuration": 300
+      "maxDuration": 300,
+      "regions": ["sin1"]
     }
   }
 }

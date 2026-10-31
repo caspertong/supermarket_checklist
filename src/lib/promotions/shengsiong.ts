@@ -6,6 +6,11 @@ import { keepEssentials } from "./essentials";
 const SOCKET = "wss://shengsiong.com.sg/websocket";
 const PAGE_SIZE = 5000;
 const CALL_TIMEOUT_MS = 180_000;
+const WS_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+  Origin: "https://shengsiong.com.sg",
+};
 const FILTERS = {
   categoryFilter: { slugs: [] },
   campaignPageFilter: { slug: "", category: { slug: "" } },
@@ -62,7 +67,7 @@ class DdpSocket {
   private ready: Promise<void>;
 
   constructor() {
-    this.ws = new WebSocket(SOCKET, { headers: { "User-Agent": "Mozilla/5.0" } });
+    this.ws = new WebSocket(SOCKET, { headers: WS_HEADERS });
     this.ready = new Promise((resolve, reject) => {
       this.ws.once("open", () => {
         this.ws.send(JSON.stringify({ msg: "connect", version: "1", support: ["1", "pre2", "pre1"] }));
@@ -79,7 +84,18 @@ class DdpSocket {
         }
       };
       this.ws.on("message", onMessage);
-      this.ws.once("error", reject);
+      this.ws.once("error", (err) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("Unexpected server response: 200")) {
+          reject(
+            new Error(
+              "Sheng Siong did not upgrade the WebSocket (HTTP 200). Their site often blocks US datacenters; this job must run in Singapore (sin1).",
+            ),
+          );
+          return;
+        }
+        reject(err);
+      });
     });
   }
 
