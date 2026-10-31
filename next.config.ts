@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@electric-sql/pglite", "web-push"],
+  serverExternalPackages: ["@electric-sql/pglite", "web-push", "ws"],
   images: {
     localPatterns: [{ pathname: "/thumbs/**" }],
   },

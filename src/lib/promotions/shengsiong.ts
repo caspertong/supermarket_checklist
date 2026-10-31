@@ -4,6 +4,8 @@ import { fillPromotions, keepMajor } from "./filters";
 import { keepEssentials } from "./essentials";
 
 const SOCKET = "wss://shengsiong.com.sg/websocket";
+const PAGE_SIZE = 5000;
+const CALL_TIMEOUT_MS = 180_000;
 const FILTERS = {
   categoryFilter: { slugs: [] },
   campaignPageFilter: { slug: "", category: { slug: "" } },
@@ -102,7 +104,7 @@ class DdpSocket {
       setTimeout(() => {
         this.ws.off("message", onMessage);
         reject(new Error("Sheng Siong socket timed out."));
-      }, 60_000);
+      }, CALL_TIMEOUT_MS);
     });
   }
 
@@ -120,7 +122,7 @@ export async function pullShengsiongPromotions(): Promise<StorePromos> {
       FILTERS,
       MISC,
       1,
-      Math.max(total, 5000),
+      Math.max(total, PAGE_SIZE),
     ]);
     const seen = new Set<string>();
     const raw: PromoItem[] = [];

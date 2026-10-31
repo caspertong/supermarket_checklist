@@ -35,9 +35,12 @@ export async function loadPromotions(): Promise<PromotionsDTO> {
   const db = await getDb();
   const rows = await db.select().from(promotionStores);
   const byStore = new Map(rows.map((row) => [row.store as StoreName, row.payload]));
+  const useFileFallback = process.env.NODE_ENV !== "production";
   return {
-    fairprice: byStore.get("fairprice") ?? fileData.fairprice ?? EMPTY,
-    shengsiong: byStore.get("shengsiong") ?? fileData.shengsiong ?? EMPTY,
+    fairprice:
+      byStore.get("fairprice") ?? (useFileFallback ? fileData.fairprice : undefined) ?? EMPTY,
+    shengsiong:
+      byStore.get("shengsiong") ?? (useFileFallback ? fileData.shengsiong : undefined) ?? EMPTY,
   };
 }
 
