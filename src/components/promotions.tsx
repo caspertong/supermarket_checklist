@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { BackToChecklist } from "@/components/back-to-checklist";
 import { Gate } from "@/components/gate";
 import { api } from "@/lib/client";
-import { formatDateLabel } from "@/lib/sgt";
+import { formatDateLabel, formatFetchedAtLabel } from "@/lib/sgt";
 import type { PromoItem, PromotionsDTO, StoreName, StorePromos } from "@/lib/types";
 
 const STORE_LABEL: Record<StoreName, string> = {
@@ -97,9 +97,14 @@ function PromotionList() {
 function Summary({ store }: { store: StorePromos }) {
   const from = store.validFrom ? formatDateLabel(store.validFrom) : null;
   const till = store.validTill ? formatDateLabel(store.validTill) : null;
+  const updated = formatFetchedAtLabel(store.fetchedAt);
   return (
     <div className="mt-4 text-sm text-mist">
       <p>
+        Last updated{updated ? `: ${updated}` : ": not yet"}
+        <span className="text-mist/70"> (Singapore time)</span>
+      </p>
+      <p className="mt-1">
         {store.items.length} major cuts
         {from && till ? ` · ${from} – ${till}` : ""}
       </p>
