@@ -92,6 +92,7 @@ export const CATALOG: CatalogItem[] = [
   item("banana", "Banana", "produce", ["bananas"]),
   item("apple", "Apple", "produce", ["apples"]),
   item("strawberry", "Strawberry", "produce", ["strawberries", "草莓"]),
+  item("blueberry", "Blueberry", "produce", ["blueberries", "蓝莓"]),
   item("kiwi", "Kiwi", "produce", ["kiwifruit", "kiwi fruit", "奇异果"]),
   item("grape", "Grape", "produce", ["grapes", "葡萄"]),
   item("watermelon", "Watermelon", "produce", ["water melon", "西瓜"]),
@@ -124,6 +125,8 @@ export const CATALOG: CatalogItem[] = [
   ]),
   item("chicken-breast", "Chicken breast", "meat", ["boneless breast"]),
   item("chicken-wing", "Chicken wing", "meat", ["chicken wings", "wings"]),
+  item("chicken-thigh", "Chicken thigh", "meat", ["chicken thighs", "thigh", "thighs", "鸡大腿", "鸡腿肉"]),
+  item("soup-bone", "Soup bone", "meat", ["soup bones", "bone for soup", "汤骨", "tang gu", "pork soup bone"]),
   item("minced-pork", "Minced pork", "meat", ["minced meat", "pork mince", "ground pork", "肉碎", "绞肉"]),
   item("pork-belly", "Pork belly", "meat", ["五花肉", "wu hua rou", "streaky pork"]),
   item("sam-chan", "Sam chan", "meat", ["三成肉", "三层肉", "sam chan yuk"]),
@@ -156,7 +159,21 @@ export const CATALOG: CatalogItem[] = [
   item("egg", "Egg", "pantry", ["eggs", "鸡蛋"]),
   item("quail-egg", "Quail egg", "pantry", ["quail eggs", "鹌鹑蛋"]),
   item("tofu", "Tofu", "soy", ["toufu", "tau hu", "tauhu", "doufu", "beancurd", "豆腐"]),
-  item("tau-kwa", "Tau kwa", "soy", ["tau gua", "taugua", "taukwa", "tau kua", "豆干"]),
+  item("tau-kwa", "Tau kwa", "soy", [
+    "tau gua",
+    "tao gua",
+    "taugua",
+    "taukwa",
+    "tau kua",
+    "豆干",
+  ]),
+  item("japanese-tofu", "Japanese tofu", "soy", [
+    "japanese beancurd",
+    "egg tofu",
+    "日本豆腐",
+    "nihon tofu",
+    "sun tofu",
+  ]),
   item("tau-pok", "Tau pok", "soy", ["taupok", "tofu puff", "tofu puffs", "fried tofu"]),
   item("cheese-tofu", "Cheese tofu", "soy", ["cheese beancurd", "芝士豆腐", "奶酪豆腐"]),
   item("ring-roll", "Ring roll", "soy", [
@@ -229,12 +246,26 @@ export const CATALOG: CatalogItem[] = [
   item("bandung", "Bandung", "drinks", ["rose syrup milk"]),
   item("kickapoo", "Kickapoo", "drinks", []),
   item("horlicks", "Horlicks", "drinks", ["好立克"]),
-  item("ribena", "Ribena", "drinks", ["blackcurrant"]),
+  item("ribena", "Ribena", "drinks", [
+    "ribena drink",
+    "ribena packet",
+    "ribena concentrate",
+    "blackcurrant",
+    "黑加仑",
+    "利宾纳",
+  ]),
   item("light-soy", "Light soy sauce", "pantry", ["light soya sauce", "生抽", "sheng chou"]),
   item("dark-soy", "Dark soy sauce", "pantry", ["dark soya sauce", "老抽", "lao chou"]),
   item("sesame-oil", "Sesame oil", "pantry", ["seaseme oil", "麻油", "芝麻油", "ma you"]),
   item("hua-diao", "Hua diao jiu", "pantry", ["huadiao", "hua tiao jiu", "花雕酒", "花雕", "shaoxing", "绍兴酒"]),
   item("oyster-sauce", "Oyster sauce", "pantry", ["蚝油"]),
+  item("salad-dressing", "Salad dressing", "pantry", [
+    "salad dressings",
+    "caesar dressing",
+    "thousand island",
+    "沙拉酱",
+    "千岛酱",
+  ]),
   item("cooking-oil", "Cooking oil", "pantry", ["oil", "vegetable oil"]),
   item("bread", "Bread", "bakery", ["gardenia", "loaf"]),
   item("salt", "Salt", "pantry", []),
@@ -268,16 +299,57 @@ export function exactMatch(query: string) {
   return CATALOG.find((entry) => namesOf(entry).includes(normalized));
 }
 
+function scoreCatalogEntry(entry: CatalogItem, normalized: string) {
+  let score = 0;
+  let matchedLen = 0;
+  for (const name of namesOf(entry)) {
+    if (name === normalized) {
+      score = Math.max(score, 100);
+      matchedLen = Math.max(matchedLen, name.length);
+    } else if (name.startsWith(normalized)) {
+      score = Math.max(score, 80);
+      matchedLen = Math.max(matchedLen, name.length);
+    } else if (normalized.startsWith(name) && name.length >= 3) {
+      score = Math.max(score, 70);
+      matchedLen = Math.max(matchedLen, name.length);
+    } else if (name.includes(normalized)) {
+      score = Math.max(score, 50);
+      matchedLen = Math.max(matchedLen, name.length);
+    } else if (normalized.includes(name) && name.length >= 3) {
+      const embedded = 45 + name.length;
+      score = Math.max(score, embedded);
+      matchedLen = Math.max(matchedLen, name.length);
+    }
+  }
+  return { score, matchedLen };
+}
+
+/** Match full lines like "Ribena drink packet…" or "Blueberry if offer". */
+export function bestMatch(query: string) {
+  const exact = exactMatch(query);
+  if (exact) return exact;
+  const normalized = normalizeQuery(query);
+  if (!normalized) return undefined;
+  let best: { entry: CatalogItem; score: number; matchedLen: number } | undefined;
+  for (const entry of CATALOG) {
+    const { score, matchedLen } = scoreCatalogEntry(entry, normalized);
+    if (score <= 0) continue;
+    if (
+      !best ||
+      score > best.score ||
+      (score === best.score && matchedLen > best.matchedLen)
+    ) {
+      best = { entry, score, matchedLen };
+    }
+  }
+  return best?.entry;
+}
+
 export function suggestItems(query: string, limit = 6) {
   const normalized = normalizeQuery(query);
   if (!normalized) return [];
   return CATALOG.map((entry) => {
-    let score = 0;
-    for (const name of namesOf(entry)) {
-      if (name === normalized) score = Math.max(score, 100);
-      else if (name.startsWith(normalized)) score = Math.max(score, 80);
-      else if (name.includes(normalized)) score = Math.max(score, 50);
-    }
+    const { score } = scoreCatalogEntry(entry, normalized);
     return { entry, score };
   })
     .filter((row) => row.score > 0)
@@ -297,7 +369,7 @@ export function imageForSlug(slug: string | null | undefined) {
 }
 
 export function resolveEntry(query: string) {
-  const match = exactMatch(query);
+  const match = bestMatch(query);
   if (match) {
     return { name: match.name, slug: match.slug, image: match.image };
   }

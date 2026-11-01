@@ -853,6 +853,37 @@ const thumbs = {
     <path d="M72 52c4-8 8-10 8-10s4 2 8 10" fill="none" stroke="#ff8a65" stroke-width="3" stroke-linecap="round"/>
     <path d="M66 56c2-6 4-8 4-8s2 2 4 8M90 56c2-6 4-8 4-8s2 2 4 8" fill="none" stroke="#ffab91" stroke-width="2" stroke-linecap="round"/>
   `),
+  blueberry: card("#5c6bc0", `
+    <circle cx="68" cy="88" r="14" fill="#5c6bc0"/>
+    <circle cx="92" cy="84" r="16" fill="#7986cb"/>
+    <circle cx="80" cy="104" r="12" fill="#3f51b5"/>
+    <circle cx="64" cy="86" r="3" fill="#e8eaf6" opacity="0.8"/>
+    <circle cx="90" cy="80" r="3" fill="#e8eaf6" opacity="0.8"/>
+    <path d="M80 66c4-10 10-14 14-12" fill="none" stroke="#43a047" stroke-width="3" stroke-linecap="round"/>
+  `),
+  "chicken-thigh": card("#e09b5a", `
+    <path d="M92 44c20 10 30 30 26 50-4 18-22 28-38 26-8 14-22 18-30 10-8-8-2-20 8-26 6-18 18-34 34-60z" fill="#e09b5a"/>
+    <ellipse cx="104" cy="66" rx="14" ry="10" fill="#f2c9a0"/>
+    <path d="M58 108c6 8 14 10 20 6" fill="none" stroke="#c4843a" stroke-width="3" stroke-linecap="round"/>
+  `),
+  "soup-bone": card("#f7efe2", `
+    <path d="M52 88c8-20 20-32 36-32s28 12 36 32c4 12 2 24-8 30-8 6-18 8-28 8s-20-2-28-8c-10-6-12-18-8-30z" fill="#f7efe2"/>
+    <ellipse cx="68" cy="82" rx="10" ry="8" fill="#e7d3c4"/>
+    <ellipse cx="92" cy="78" rx="12" ry="9" fill="#e7d3c4"/>
+    <path d="M58 96h44" stroke="#d7c4b0" stroke-width="4" stroke-linecap="round"/>
+  `),
+  "japanese-tofu": card("#fffde7", `
+    <rect x="48" y="58" width="64" height="52" rx="10" fill="#fff8e1"/>
+    <rect x="54" y="66" width="52" height="36" rx="8" fill="#fffde7"/>
+    <ellipse cx="80" cy="84" rx="18" ry="12" fill="#fff"/>
+    <path d="M62 78c6 8 30 8 36 0" fill="none" stroke="#f0b429" stroke-width="2" opacity="0.5"/>
+  `),
+  "salad-dressing": card("#7cb342", `
+    <path d="M70 40h20v14l12 16v42a12 12 0 0 1-12 12H70a12 12 0 0 1-12-12V70l12-16V40z" fill="#aed581"/>
+    <rect x="74" y="34" width="12" height="8" rx="2" fill="#558b2f"/>
+    <rect x="68" y="84" width="24" height="14" rx="2" fill="#fff"/>
+    <path d="M72 88c4 4 12 4 16 0" fill="none" stroke="#7cb342" stroke-width="2"/>
+  `),
 };
 
 function write(file, contents) {

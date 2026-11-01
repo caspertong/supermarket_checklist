@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, lt, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { households, items, lists, members } from "@/db/schema";
-import { CATALOG, exactMatch, imageForSlug, normalizeQuery } from "@/data/catalog";
+import { CATALOG, bestMatch, imageForSlug, normalizeQuery } from "@/data/catalog";
 import { formatDateLabel, todaySGT } from "./sgt";
 import type { Session } from "./session";
 import type { ArchiveEntry, ItemDTO, ListDTO, StoreName, Unit } from "./types";
@@ -100,11 +100,13 @@ function toItem(
   row: typeof items.$inferSelect,
   names: Map<string, string>,
 ): ItemDTO {
+  const inferred = row.catalogSlug ? null : bestMatch(row.name);
+  const slug = row.catalogSlug ?? inferred?.slug ?? null;
   return {
     id: row.id,
     name: row.name,
-    slug: row.catalogSlug,
-    image: imageForSlug(row.catalogSlug),
+    slug,
+    image: inferred?.image ?? imageForSlug(slug),
     quantity: Number(row.quantity),
     unit: asUnit(row.unit),
     note: row.note,
@@ -173,7 +175,7 @@ export async function addItem(
   const note = asNote(input.note);
   const bySlug =
     typeof input.slug === "string" ? CATALOG.find((entry) => entry.slug === input.slug) : undefined;
-  const match = bySlug ?? exactMatch(name);
+  const match = bySlug ?? bestMatch(name);
   const slug = match?.slug ?? null;
   const displayName = match?.name ?? name;
 
@@ -229,7 +231,7 @@ export async function updateItem(
   const patch: Partial<typeof items.$inferInsert> = { updatedAt: new Date() };
   if (input.name !== undefined) {
     const name = asName(input.name);
-    const match = exactMatch(name);
+    const match = bestMatch(name);
     patch.name = match?.name ?? name;
     patch.catalogSlug = match?.slug ?? null;
   }
