@@ -316,6 +316,18 @@ const thumbs = {
     <rect x="68" y="70" width="24" height="18" rx="3" fill="#f0b429"/>
     <rect x="70" y="40" width="20" height="12" rx="3" fill="#3a2a22"/>
   `),
+  "abalone-sauce": card("#5c4a32", `
+    <rect x="62" y="48" width="36" height="70" rx="16" fill="#5c4a32"/>
+    <rect x="68" y="70" width="24" height="18" rx="3" fill="#f0b429"/>
+    <rect x="70" y="40" width="20" height="12" rx="3" fill="#7a5c3a"/>
+    <ellipse cx="80" cy="92" rx="8" ry="5" fill="#c9a227" opacity="0.7"/>
+  `),
+  abalone: card("#c9a227", `
+    <ellipse cx="80" cy="88" rx="32" ry="24" fill="#d4af37"/>
+    <ellipse cx="80" cy="84" rx="24" ry="18" fill="#e8c85a"/>
+    <path d="M58 88c8-12 16-18 22-18s14 6 22 18" fill="none" stroke="#9a7b2e" stroke-width="3"/>
+    <path d="M72 76c4-6 10-8 16-6M88 74c6 2 10 8 8 14" fill="none" stroke="#7a5c1a" stroke-width="2" stroke-linecap="round"/>
+  `),
   "cooking-oil": card("#f5d76e", `
     <path d="M70 40h20v12l12 18v42a14 14 0 0 1-14 14H72a14 14 0 0 1-14-14V70l12-18V40z" fill="#ffe38a"/>
     <rect x="74" y="34" width="12" height="8" rx="2" fill="#e0a15a"/>
@@ -347,6 +359,25 @@ const thumbs = {
     <path d="M62 58h36v10l8 12v36a10 10 0 0 1-10 10H64a10 10 0 0 1-10-10V80l8-12V58z" fill="#5ec8e6"/>
     <rect x="70" y="44" width="20" height="16" rx="4" fill="#7ee0d6"/>
     <rect x="70" y="86" width="22" height="14" rx="2" fill="#f4fbff"/>
+  `),
+  "bottle-detergent": card("#5ec8e6", `
+    <path d="M62 48h28l6 14v52a10 10 0 0 1-10 10H66a10 10 0 0 1-10-10V62l6-14z" fill="#5ec8e6"/>
+    <rect x="66" y="78" width="28" height="22" rx="4" fill="#7ee0d6"/>
+    <path d="M70 48 V40 h12 v8" fill="none" stroke="#3ba8c8" stroke-width="3"/>
+    <rect x="72" y="84" width="16" height="10" rx="2" fill="#f4fbff" opacity="0.85"/>
+  `),
+  toothpaste: card("#e8f4ff", `
+    <rect x="66" y="52" width="28" height="68" rx="10" fill="#f4fbff"/>
+    <rect x="70" y="44" width="20" height="12" rx="4" fill="#7ee0d6"/>
+    <rect x="72" y="88" width="16" height="24" rx="4" fill="#5ec8e6"/>
+    <path d="M74 58h12" stroke="#d5e7f5" stroke-width="2"/>
+  `),
+  "kids-toothpaste": card("#ffc8dd", `
+    <rect x="62" y="54" width="36" height="64" rx="12" fill="#ffe5f0"/>
+    <rect x="66" y="44" width="28" height="14" rx="5" fill="#ff8fab"/>
+    <circle cx="72" cy="84" r="5" fill="#ff8fab"/>
+    <circle cx="88" cy="88" r="4" fill="#7ee0d6"/>
+    <rect x="70" y="96" width="20" height="16" rx="4" fill="#ffb3c6"/>
   `),
   "dish-soap": card("#3ddc97", `
     <rect x="66" y="50" width="28" height="70" rx="12" fill="#3ddc97"/>

@@ -26,8 +26,8 @@ const STATEMENTS = [
     list_date date NOT NULL,
     store text,
     revision integer NOT NULL DEFAULT 1,
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (household_id, list_date)
+    archived_at timestamptz,
+    updated_at timestamptz NOT NULL DEFAULT now()
   )`,
   `CREATE TABLE IF NOT EXISTS items (
     id text PRIMARY KEY,
@@ -52,6 +52,25 @@ const STATEMENTS = [
   )`,
 ];
 
+const MIGRATIONS = [
+  `ALTER TABLE lists ADD COLUMN IF NOT EXISTS archived_at timestamptz`,
+  `ALTER TABLE lists DROP CONSTRAINT IF EXISTS lists_household_id_list_date_key`,
+  `ALTER TABLE lists DROP CONSTRAINT IF EXISTS lists_household_date`,
+  `DROP INDEX IF EXISTS lists_household_date`,
+  `UPDATE lists AS current
+   SET archived_at = COALESCE(current.updated_at, now())
+   WHERE current.archived_at IS NULL
+     AND current.id NOT IN (
+       SELECT kept.id
+       FROM (
+         SELECT DISTINCT ON (household_id) id
+         FROM lists
+         ORDER BY household_id, list_date DESC, updated_at DESC
+       ) AS kept
+     )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS lists_household_active ON lists (household_id) WHERE archived_at IS NULL`,
+];
+
 export type Database = NeonHttpDatabase<typeof schema>;
 
 const globalForDb = globalThis as unknown as {
@@ -62,7 +81,7 @@ const globalForDb = globalThis as unknown as {
 async function initDatabase(): Promise<Database> {
   if (process.env.DATABASE_URL) {
     const sql = neon(process.env.DATABASE_URL);
-    for (const statement of STATEMENTS) {
+    for (const statement of [...STATEMENTS, ...MIGRATIONS]) {
       await sql.query(statement);
     }
     return drizzleNeon(sql, { schema });
@@ -75,7 +94,7 @@ async function initDatabase(): Promise<Database> {
     schema,
   });
   await db.$client.waitReady;
-  for (const statement of STATEMENTS) {
+  for (const statement of [...STATEMENTS, ...MIGRATIONS]) {
     await db.$client.exec(statement);
   }
   return db as unknown as Database;

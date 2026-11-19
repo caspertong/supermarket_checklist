@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BackToChecklist } from "@/components/back-to-checklist";
+import { BackLink, BackToChecklist } from "@/components/back-to-checklist";
 import { Gate } from "@/components/gate";
 import { api, formatQuantity } from "@/lib/client";
 import type { ArchiveEntry, ListDTO, StoreName } from "@/lib/types";
@@ -39,13 +39,17 @@ function ArchiveList() {
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
       <BackToChecklist />
       <h1 className="mt-4 text-3xl font-semibold tracking-tight">Archive</h1>
-      <p className="mt-2 text-sm text-mist">Older trips, kept by the Singapore date.</p>
+      <p className="mt-2 text-sm text-mist">Trips you archived, kept by the Singapore date.</p>
       {error ? <p className="mt-6 text-sm text-amber">{error}</p> : null}
       <ul className="mt-6 space-y-3">
-        {entries?.length === 0 ? <li className="glass rounded-3xl px-5 py-8 text-mist">No past lists yet. Today stays on the home screen.</li> : null}
+        {entries?.length === 0 ? (
+          <li className="glass rounded-3xl px-5 py-8 text-mist">
+            No archived lists yet. Use Archive list on the home screen when the trip is done.
+          </li>
+        ) : null}
         {entries?.map((entry) => (
-          <li key={entry.date}>
-            <Link href={`/archive/${entry.date}`} className="glass flex items-center justify-between rounded-3xl px-4 py-4">
+          <li key={entry.id}>
+            <Link href={`/archive/${entry.id}`} className="glass flex items-center justify-between rounded-3xl px-4 py-4">
               <span>
                 <span className="block">{entry.dateLabel}</span>
                 <span className="mt-1 block text-sm text-mist">
@@ -61,15 +65,15 @@ function ArchiveList() {
   );
 }
 
-export function ArchiveDay({ date }: { date: string }) {
+export function ArchiveDay({ id }: { id: string }) {
   return (
     <Gate>
-      {() => <Day date={date} />}
+      {() => <Day id={id} />}
     </Gate>
   );
 }
 
-function Day({ date }: { date: string }) {
+function Day({ id }: { id: string }) {
   const router = useRouter();
   const [list, setList] = useState<ListDTO | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,12 +81,12 @@ function Day({ date }: { date: string }) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void api<ListDTO>(`/api/archive/${date}`)
+      void api<ListDTO>(`/api/archive/${id}`)
         .then(setList)
-        .catch((caught) => setError(caught instanceof Error ? caught.message : "Could not open that day."));
+        .catch((caught) => setError(caught instanceof Error ? caught.message : "Could not open that list."));
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [date]);
+  }, [id]);
 
   const unchecked = list?.items.filter((item) => !item.checked).length ?? 0;
 
@@ -90,7 +94,7 @@ function Day({ date }: { date: string }) {
     setPending(true);
     setError(null);
     try {
-      await api(`/api/archive/${date}/copy`, { method: "POST" });
+      await api(`/api/archive/${id}/copy`, { method: "POST" });
       router.push("/");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not copy the leftovers.");
@@ -100,9 +104,7 @@ function Day({ date }: { date: string }) {
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 py-6">
-      <Link href="/archive" className="text-sm text-aqua">
-        Archive
-      </Link>
+      <BackLink href="/archive" label="Archive" />
       <h1 className="mt-4 text-3xl font-semibold tracking-tight">{list?.dateLabel ?? "Past list"}</h1>
       <p className="mt-2 text-sm text-mist">{list?.store ? STORE_LABEL[list.store] : "No store was set"}</p>
       {error ? <p className="mt-4 text-sm text-amber">{error}</p> : null}
@@ -123,7 +125,7 @@ function Day({ date }: { date: string }) {
         onClick={() => void copy()}
         className="mt-6 h-12 rounded-full bg-aqua font-medium text-ink disabled:opacity-50"
       >
-        {pending ? "Copying…" : "Copy unchecked to today"}
+        {pending ? "Copying…" : "Copy unchecked to the list"}
       </button>
     </main>
   );

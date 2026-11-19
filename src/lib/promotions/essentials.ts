@@ -9,7 +9,15 @@ const JUNK = [
   "candy", "chocolate", "ice cream", "sandwich", "mantou", "bao", "pie",
   "cutlet", "cleaner", "yakitori", "puff",
 ];
-const HOUSEHOLD = new Set(["detergent", "toilet-paper", "dish-soap", "wet-tissue", "baby-wipe", "diaper"]);
+const HOUSEHOLD = new Set([
+  "detergent",
+  "bottle-detergent",
+  "toilet-paper",
+  "dish-soap",
+  "wet-tissue",
+  "baby-wipe",
+  "diaper",
+]);
 const SKIP_ALIASES = new Set(["tissue", "oil"]);
 const BLOCKS: Record<string, string[]> = {
   sugar: ["drink", "nest", "pear", "reduced", "less", "kopi", "coffee"],
@@ -27,6 +35,7 @@ const BLOCKS: Record<string, string[]> = {
   chilli: ["fish head", "sauce"],
   ginger: ["cleaner", "yuzu"],
   prawn: ["ball", "paste", "cracker"],
+  abalone: ["sauce"],
 };
 
 type CatalogEntry = { slug: string; label: string; aliases: string[] };

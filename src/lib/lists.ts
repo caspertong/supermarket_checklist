@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, lt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { households, items, lists, members } from "@/db/schema";
 import { CATALOG, bestMatch, imageForSlug, normalizeQuery } from "@/data/catalog";
@@ -55,34 +55,52 @@ async function householdMembers(householdId: string) {
   return db.select().from(members).where(eq(members.householdId, householdId));
 }
 
-async function getOrCreateList(householdId: string, date: string) {
+async function findActiveList(householdId: string) {
   const db = await getDb();
   const existing = await db
     .select()
     .from(lists)
-    .where(and(eq(lists.householdId, householdId), eq(lists.listDate, date)))
+    .where(and(eq(lists.householdId, householdId), isNull(lists.archivedAt)))
+    .orderBy(desc(lists.listDate), desc(lists.updatedAt))
     .limit(1);
-  if (existing[0]) return existing[0];
+  return existing[0] ?? null;
+}
 
+function emptyList(): ListDTO {
+  const date = todaySGT();
+  return {
+    date,
+    dateLabel: formatDateLabel(date),
+    store: null,
+    revision: 0,
+    items: [],
+  };
+}
+
+async function getOrCreateActiveList(householdId: string) {
+  const existing = await findActiveList(householdId);
+  if (existing) return existing;
+
+  const db = await getDb();
   const id = crypto.randomUUID();
   try {
     await db.insert(lists).values({
       id,
       householdId,
-      listDate: date,
+      listDate: todaySGT(),
       revision: 1,
     });
   } catch {
-    const again = await db
-      .select()
-      .from(lists)
-      .where(and(eq(lists.householdId, householdId), eq(lists.listDate, date)))
-      .limit(1);
-    if (again[0]) return again[0];
-    throw new ListError(500, "Could not open today's list.");
+    const again = await findActiveList(householdId);
+    if (again) return again;
+    throw new ListError(500, "Could not open the list.");
   }
   const created = await db.select().from(lists).where(eq(lists.id, id)).limit(1);
   return created[0];
+}
+
+function assertActive(list: typeof lists.$inferSelect) {
+  if (list.archivedAt) throw new ListError(400, "Archived lists stay as they were.");
 }
 
 async function bump(listId: string) {
@@ -116,28 +134,43 @@ function toItem(
   };
 }
 
-export async function readList(householdId: string, date: string): Promise<ListDTO | null> {
+async function reloadList(householdId: string, listId: string): Promise<ListDTO> {
   const db = await getDb();
-  const listRows = await db
-    .select()
-    .from(lists)
-    .where(and(eq(lists.householdId, householdId), eq(lists.listDate, date)))
-    .limit(1);
-  const list = listRows[0];
-  if (!list) return null;
+  const rows = await db.select().from(lists).where(eq(lists.id, listId)).limit(1);
+  if (!rows[0]) throw new ListError(500, "Could not open the list.");
+  return hydrateList(rows[0], householdId);
+}
+
+async function hydrateList(list: typeof lists.$inferSelect, householdId: string): Promise<ListDTO> {
+  const db = await getDb();
   const [people, rows] = await Promise.all([
     householdMembers(householdId),
     db.select().from(items).where(eq(items.listId, list.id)).orderBy(asc(items.position)),
   ]);
   const names = new Map(people.map((person) => [person.id, person.name]));
   const store = list.store === "fairprice" || list.store === "shengsiong" ? list.store : null;
+  const date = list.archivedAt ? todaySGT(list.archivedAt) : todaySGT();
   return {
-    date: list.listDate,
-    dateLabel: formatDateLabel(list.listDate),
+    date,
+    dateLabel: formatDateLabel(date),
     store,
     revision: list.revision,
     items: rows.map((row) => toItem(row, names)),
   };
+}
+
+export async function readArchivedList(householdId: string, listId: string): Promise<ListDTO | null> {
+  const db = await getDb();
+  const listRows = await db
+    .select()
+    .from(lists)
+    .where(
+      and(eq(lists.id, listId), eq(lists.householdId, householdId), isNotNull(lists.archivedAt)),
+    )
+    .limit(1);
+  const list = listRows[0];
+  if (!list) return null;
+  return hydrateList(list, householdId);
 }
 
 export async function touchPresence(memberId: string) {
@@ -147,23 +180,14 @@ export async function touchPresence(memberId: string) {
 
 export async function getToday(session: Session, revision: number | null, visible: boolean) {
   if (visible) await touchPresence(session.memberId);
-  const date = todaySGT();
-  const existing = await readList(session.householdId, date);
+  const active = await findActiveList(session.householdId);
+  const existing = active ? await hydrateList(active, session.householdId) : null;
   if (existing && revision != null && existing.revision === revision) {
     return { unchanged: true as const, revision: existing.revision };
   }
   if (existing) return { unchanged: false as const, list: existing };
   if (revision === 0) return { unchanged: true as const, revision: 0 };
-  return {
-    unchanged: false as const,
-    list: {
-      date,
-      dateLabel: formatDateLabel(date),
-      store: null,
-      revision: 0,
-      items: [],
-    } satisfies ListDTO,
-  };
+  return { unchanged: false as const, list: emptyList() };
 }
 
 export async function addItem(
@@ -179,7 +203,7 @@ export async function addItem(
   const slug = match?.slug ?? null;
   const displayName = match?.name ?? name;
 
-  const list = await getOrCreateList(session.householdId, todaySGT());
+  const list = await getOrCreateActiveList(session.householdId);
   const db = await getDb();
   const current = await db
     .select()
@@ -200,8 +224,7 @@ export async function addItem(
     position,
   });
   await bump(list.id);
-  const payload = await readList(session.householdId, list.listDate);
-  return { list: payload!, addedName: displayName };
+  return { list: await reloadList(session.householdId, list.id), addedName: displayName };
 }
 
 export async function updateItem(
@@ -224,9 +247,7 @@ export async function updateItem(
     .limit(1);
   const row = found[0];
   if (!row) throw new ListError(404, "That item is no longer on the list.");
-  if (row.list.listDate !== todaySGT()) {
-    throw new ListError(400, "Past lists stay as they were.");
-  }
+  assertActive(row.list);
 
   const patch: Partial<typeof items.$inferInsert> = { updatedAt: new Date() };
   if (input.name !== undefined) {
@@ -247,9 +268,9 @@ export async function updateItem(
 
   await db.update(items).set(patch).where(eq(items.id, itemId));
   await bump(row.list.id);
-  const payload = await readList(session.householdId, row.list.listDate);
-  const updated = payload?.items.find((item) => item.id === itemId);
-  return { list: payload!, itemName: updated?.name ?? row.item.name, checkedChange };
+  const payload = await reloadList(session.householdId, row.list.id);
+  const updated = payload.items.find((item) => item.id === itemId);
+  return { list: payload, itemName: updated?.name ?? row.item.name, checkedChange };
 }
 
 export async function removeItem(session: Session, itemId: string) {
@@ -262,37 +283,36 @@ export async function removeItem(session: Session, itemId: string) {
     .limit(1);
   const row = found[0];
   if (!row) throw new ListError(404, "That item is no longer on the list.");
-  if (row.list.listDate !== todaySGT()) throw new ListError(400, "Past lists stay as they were.");
+  assertActive(row.list);
   await db.delete(items).where(eq(items.id, itemId));
   await bump(row.list.id);
-  const payload = await readList(session.householdId, row.list.listDate);
-  return { list: payload!, itemName: row.item.name };
+  return { list: await reloadList(session.householdId, row.list.id), itemName: row.item.name };
 }
 
 export async function setStore(session: Session, store: unknown) {
   const next = asStore(store);
-  const list = await getOrCreateList(session.householdId, todaySGT());
+  const list = await getOrCreateActiveList(session.householdId);
   const db = await getDb();
   await db.update(lists).set({ store: next }).where(eq(lists.id, list.id));
   await bump(list.id);
-  const payload = await readList(session.householdId, list.listDate);
-  return { list: payload!, store: next };
+  return { list: await reloadList(session.householdId, list.id), store: next };
 }
 
 export async function listArchive(householdId: string): Promise<ArchiveEntry[]> {
   const db = await getDb();
-  const today = todaySGT();
   const past = await db
     .select()
     .from(lists)
-    .where(and(eq(lists.householdId, householdId), lt(lists.listDate, today)))
-    .orderBy(desc(lists.listDate));
+    .where(and(eq(lists.householdId, householdId), isNotNull(lists.archivedAt)))
+    .orderBy(desc(lists.archivedAt), desc(lists.listDate));
   const entries: ArchiveEntry[] = [];
   for (const list of past) {
     const rows = await db.select().from(items).where(eq(items.listId, list.id));
+    const date = list.archivedAt ? todaySGT(list.archivedAt) : list.listDate;
     entries.push({
-      date: list.listDate,
-      dateLabel: formatDateLabel(list.listDate),
+      id: list.id,
+      date,
+      dateLabel: formatDateLabel(date),
       store: list.store === "fairprice" || list.store === "shengsiong" ? list.store : null,
       total: rows.length,
       checked: rows.filter((row) => row.checked).length,
@@ -301,15 +321,26 @@ export async function listArchive(householdId: string): Promise<ArchiveEntry[]> 
   return entries;
 }
 
-export async function copyUnchecked(session: Session, fromDate: string) {
-  const today = todaySGT();
-  if (fromDate >= today) throw new ListError(400, "Choose a past list to copy.");
-  const source = await readList(session.householdId, fromDate);
-  if (!source) throw new ListError(404, "That day has no list.");
+export async function archiveActive(session: Session) {
+  const list = await findActiveList(session.householdId);
+  if (!list) throw new ListError(400, "There is nothing to archive yet.");
+  const db = await getDb();
+  const rows = await db.select().from(items).where(eq(items.listId, list.id));
+  if (rows.length === 0) throw new ListError(400, "Add something before archiving.");
+  await db
+    .update(lists)
+    .set({ archivedAt: new Date(), updatedAt: new Date() })
+    .where(eq(lists.id, list.id));
+  return { list: emptyList() };
+}
+
+export async function copyUnchecked(session: Session, fromId: string) {
+  const source = await readArchivedList(session.householdId, fromId);
+  if (!source) throw new ListError(404, "That list is not in the archive.");
   const pending = source.items.filter((item) => !item.checked);
   if (pending.length === 0) throw new ListError(400, "Nothing left to copy.");
 
-  const list = await getOrCreateList(session.householdId, today);
+  const list = await getOrCreateActiveList(session.householdId);
   const db = await getDb();
   const existing = await db.select().from(items).where(eq(items.listId, list.id));
   let position = existing.reduce((max, row) => Math.max(max, row.position), 0);
@@ -363,8 +394,7 @@ export async function copyUnchecked(session: Session, fromDate: string) {
   }
 
   await bump(list.id);
-  const payload = await readList(session.householdId, today);
-  return { list: payload!, copied };
+  return { list: await reloadList(session.householdId, list.id), copied };
 }
 
 export async function getHousehold() {

@@ -149,6 +149,7 @@ export const CATALOG: CatalogItem[] = [
   ]),
   item("prawn", "Prawn", "seafood", ["prawns", "shrimp", "udang"]),
   item("squid", "Squid", "seafood", ["sotong"]),
+  item("abalone", "Abalone", "seafood", ["abalones", "鲍鱼", "罐头鲍鱼", "canned abalone"]),
   item("fish-ball", "Fish ball", "seafood", ["fishball", "鱼圆", "鱼丸"]),
   item("fish-cake", "Fish cake", "seafood", ["fishcake", "鱼饼"]),
   item("crab-stick", "Crab stick", "seafood", ["crab sticks", "surimi", "蟹柳", "蟹味棒", "kanikama"]),
@@ -259,6 +260,7 @@ export const CATALOG: CatalogItem[] = [
   item("sesame-oil", "Sesame oil", "pantry", ["seaseme oil", "麻油", "芝麻油", "ma you"]),
   item("hua-diao", "Hua diao jiu", "pantry", ["huadiao", "hua tiao jiu", "花雕酒", "花雕", "shaoxing", "绍兴酒"]),
   item("oyster-sauce", "Oyster sauce", "pantry", ["蚝油"]),
+  item("abalone-sauce", "Abalone sauce", "pantry", ["abalone sauces", "鲍鱼酱", "鲍鱼汁"]),
   item("salad-dressing", "Salad dressing", "pantry", [
     "salad dressings",
     "caesar dressing",
@@ -271,11 +273,30 @@ export const CATALOG: CatalogItem[] = [
   item("salt", "Salt", "pantry", []),
   item("sugar", "Sugar", "pantry", []),
   item("toilet-paper", "Toilet paper", "household", ["toilet roll", "tissue"]),
-  item("detergent", "Detergent", "household", ["laundry detergent", "washing powder"]),
+  item("detergent", "Detergent", "household", ["washing powder", "detergent powder", "洗衣粉"]),
+  item("bottle-detergent", "Milk bottle detergent", "household", [
+    "milk bottle detergent",
+    "bottle detergent",
+    "liquid detergent",
+    "laundry detergent",
+    "laundry liquid",
+    "洗衣液",
+    "奶瓶洗衣液",
+  ]),
   item("dish-soap", "Dish soap", "household", ["dishwashing liquid", "dish washing"]),
   item("wet-tissue", "Wet tissue", "household", ["wet tissues", "wet wipes", "湿纸巾", "湿巾"]),
   item("baby-wipe", "Baby wipe", "household", ["baby wipes", "婴儿湿巾", "宝宝湿巾"]),
   item("diaper", "Diapers", "household", ["diaper", "nappy", "nappies", "pampers", "尿片", "纸尿裤"]),
+  item("toothpaste", "Toothpaste", "household", ["tooth paste", "牙膏"]),
+  item("kids-toothpaste", "Children's toothpaste", "household", [
+    "children toothpaste",
+    "children's toothpaste",
+    "kids toothpaste",
+    "kid toothpaste",
+    "child toothpaste",
+    "儿童牙膏",
+    "小孩牙膏",
+  ]),
 ];
 
 export const FALLBACK_IMAGE = "/thumbs/grocery.svg";

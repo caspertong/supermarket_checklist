@@ -37,6 +37,8 @@ export function Checklist({
   const [notice, setNotice] = useState<string | null>(null);
   const [editing, setEditing] = useState<Row | null>(null);
   const [nudgeOpen, setNudgeOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const [alertsOn, setAlertsOn] = useState(false);
   const [iosHint, setIosHint] = useState(false);
   const revisionRef = useRef(0);
@@ -212,6 +214,23 @@ export function Checklist({
     }
   }
 
+  async function archiveList() {
+    setError(null);
+    setArchiving(true);
+    try {
+      const saved = await api<ListDTO>("/api/archive", { method: "POST" });
+      opsRef.current = [];
+      idToKey.current = new Map();
+      paint(saved);
+      setArchiveOpen(false);
+      setNotice("The list is in Archive. This is a fresh one.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not archive the list.");
+    } finally {
+      setArchiving(false);
+    }
+  }
+
   async function sendNudge(kind: "fairprice" | "shengsiong" | "check") {
     setNudgeOpen(false);
     setError(null);
@@ -283,9 +302,19 @@ export function Checklist({
           <p className="text-sm text-mist">
             {list ? `${doneItems.length} of ${list.items.length} in the basket` : "Loading today…"}
           </p>
-          <button type="button" onClick={() => setNudgeOpen(true)} className="h-10 rounded-full bg-white/10 px-4 text-sm">
-            Nudge
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setArchiveOpen(true)}
+              disabled={!list || list.items.length === 0}
+              className="h-10 rounded-full bg-white/10 px-4 text-sm disabled:opacity-40"
+            >
+              Archive list
+            </button>
+            <button type="button" onClick={() => setNudgeOpen(true)} className="h-10 rounded-full bg-white/10 px-4 text-sm">
+              Nudge
+            </button>
+          </div>
         </div>
         {iosHint ? (
           <p className="mt-3 text-sm leading-6 text-mist">
@@ -409,6 +438,25 @@ export function Checklist({
             void remove(editing.key);
           }}
         />
+      ) : null}
+
+      {archiveOpen ? (
+        <Sheet title="Archive this list?" onClose={() => setArchiveOpen(false)}>
+          <p className="text-sm leading-6 text-mist">
+            This moves the current list into Archive and starts a fresh one. Items stay until you do this, even overnight.
+          </p>
+          <button
+            type="button"
+            disabled={archiving}
+            className="h-12 w-full rounded-full bg-aqua font-medium text-ink disabled:opacity-50"
+            onClick={() => void archiveList()}
+          >
+            {archiving ? "Archiving…" : "Archive list"}
+          </button>
+          <button type="button" className="h-12 w-full rounded-full bg-white/10" onClick={() => setArchiveOpen(false)}>
+            Keep it
+          </button>
+        </Sheet>
       ) : null}
 
       {nudgeOpen ? (

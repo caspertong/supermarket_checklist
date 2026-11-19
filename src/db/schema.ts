@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   date,
@@ -51,9 +52,14 @@ export const lists = pgTable(
     listDate: date("list_date", { mode: "string" }).notNull(),
     store: text("store"),
     revision: integer("revision").notNull().default(1),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("lists_household_date").on(table.householdId, table.listDate)],
+  (table) => [
+    uniqueIndex("lists_household_active")
+      .on(table.householdId)
+      .where(sql`${table.archivedAt} is null`),
+  ],
 );
 
 export const promotionStores = pgTable("promotion_stores", {

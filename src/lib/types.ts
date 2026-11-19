@@ -45,6 +45,7 @@ export type StorePromos = {
 export type PromotionsDTO = Record<StoreName, StorePromos>;
 
 export type ArchiveEntry = {
+  id: string;
   date: string;
   dateLabel: string;
   store: StoreName | null;

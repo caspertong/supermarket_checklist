@@ -10,7 +10,15 @@ JUNK = (
     "candy", "chocolate", "ice cream", "sandwich", "mantou", "bao", "pie",
     "cutlet", "cleaner", "yakitori", "puff",
 )
-HOUSEHOLD = {"detergent", "toilet-paper", "dish-soap", "wet-tissue", "baby-wipe", "diaper"}
+HOUSEHOLD = {
+    "detergent",
+    "bottle-detergent",
+    "toilet-paper",
+    "dish-soap",
+    "wet-tissue",
+    "baby-wipe",
+    "diaper",
+}
 SKIP_ALIASES = {"tissue", "oil"}
 BLOCKS = {
     "sugar": ("drink", "nest", "pear", "reduced", "less", "kopi", "coffee"),
@@ -28,6 +36,7 @@ BLOCKS = {
     "chilli": ("fish head", "sauce"),
     "ginger": ("cleaner", "yuzu"),
     "prawn": ("ball", "paste", "cracker"),
+    "abalone": ("sauce",),
 }
 
 
